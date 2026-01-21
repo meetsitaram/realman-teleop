@@ -3,9 +3,9 @@
 
 robot:
   # Robot connection settings
-  ip: "192.168.1.18"  # Robot IP address
-  port: 8080          # Robot port (default 8080)
-  model: "RM65"       # Robot model: RM65, RM75, RML63, ECO65, GEN72, R1D2
+  ip: "192.168.10.18"  # Robot IP address
+  port: 8080           # Robot port (default 8080)
+  model: "R1D2"        # Robot model: RM65, RM75, RML63, ECO65, GEN72, R1D2
 
 control:
   # Control mode: cartesian, joint, or velocity

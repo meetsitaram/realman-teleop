@@ -2,72 +2,141 @@
 Keyboard Teleoperation Module
 
 Keyboard-based control for RealMan robotic arms.
+Automatically detects if running over SSH and uses appropriate input method.
 """
 
 import logging
 import sys
-from typing import Dict
-import pygame
+import os
+from typing import Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+# Try to import pygame, but don't fail if not available
+try:
+    import pygame
+    PYGAME_AVAILABLE = True
+except ImportError:
+    PYGAME_AVAILABLE = False
+    logger.warning("Pygame not available, will use terminal mode only")
+
+# Terminal input modules (for SSH mode)
+try:
+    import select
+    import termios
+    import tty
+    TERMINAL_MODE_AVAILABLE = True
+except ImportError:
+    TERMINAL_MODE_AVAILABLE = False
+    logger.warning("Terminal mode not available (Windows?)")
+
 from .teleop_base import TeleopBase
 from .robot_controller import RobotController
 
-logger = logging.getLogger(__name__)
+
+def _detect_display():
+    """Detect if a display is available."""
+    if not PYGAME_AVAILABLE:
+        return False
+    
+    # Check if DISPLAY is set (Linux/Mac)
+    if os.environ.get('DISPLAY'):
+        return True
+    
+    # Check if running on Windows (usually has display)
+    if sys.platform == 'win32':
+        return True
+    
+    # Check if SSH session
+    if os.environ.get('SSH_CONNECTION') or os.environ.get('SSH_CLIENT'):
+        return False
+    
+    # Try to initialize pygame to see if display works
+    try:
+        pygame.init()
+        pygame.display.set_mode((1, 1))
+        pygame.quit()
+        return True
+    except:
+        return False
 
 
 class KeyboardTeleop(TeleopBase):
     """
     Keyboard-based teleoperation for RealMan robots.
     
-    Uses pygame for cross-platform keyboard input handling.
+    Automatically detects environment and uses:
+    - Pygame mode (when display available)
+    - Terminal mode (when over SSH or no display)
     """
     
-    # Default key mappings
-    DEFAULT_KEY_MAP = {
-        # Linear movement (Cartesian space)
-        pygame.K_w: 'forward',      # +X
-        pygame.K_s: 'backward',     # -X
-        pygame.K_a: 'left',         # +Y
-        pygame.K_d: 'right',        # -Y
-        pygame.K_q: 'up',           # +Z
-        pygame.K_e: 'down',         # -Z
-        
-        # Rotation (Cartesian space)
-        pygame.K_i: 'rotate_x_pos',  # +RX
-        pygame.K_k: 'rotate_x_neg',  # -RX
-        pygame.K_j: 'rotate_y_pos',  # +RY
-        pygame.K_l: 'rotate_y_neg',  # -RY
-        pygame.K_u: 'rotate_z_pos',  # +RZ
-        pygame.K_o: 'rotate_z_neg',  # -RZ
-        
-        # Control
-        pygame.K_SPACE: 'emergency_stop',
-        pygame.K_LSHIFT: 'enable',
-        pygame.K_RSHIFT: 'enable',
-        pygame.K_TAB: 'mode_switch',
-        pygame.K_EQUALS: 'speed_up',    # +
-        pygame.K_MINUS: 'speed_down',    # -
-        
-        # Joint control mode (numbers 1-7)
-        pygame.K_1: 'joint_1_neg',
-        pygame.K_2: 'joint_2_neg',
-        pygame.K_3: 'joint_3_neg',
-        pygame.K_4: 'joint_4_neg',
-        pygame.K_5: 'joint_5_neg',
-        pygame.K_6: 'joint_6_neg',
-        pygame.K_7: 'joint_7_neg',
-        
-        # Home position
-        pygame.K_h: 'go_home',
+    # Terminal key mappings (simple characters)
+    TERMINAL_KEY_MAP = {
+        'w': 'forward', 's': 'backward',
+        'a': 'left', 'd': 'right',
+        'q': 'up', 'e': 'down',
+        'i': 'rotate_x_pos', 'k': 'rotate_x_neg',
+        'j': 'rotate_y_pos', 'l': 'rotate_y_neg',
+        'u': 'rotate_z_pos', 'o': 'rotate_z_neg',
+        ' ': 'toggle_enable',
+        'h': 'go_home',
+        '+': 'speed_up', '=': 'speed_up',
+        '-': 'speed_down', '_': 'speed_down',
+        'x': 'exit',
+        '\x1b': 'exit',  # ESC
     }
+    
+    # Pygame key mappings (when available)
+    if PYGAME_AVAILABLE:
+        DEFAULT_KEY_MAP = {
+            # Linear movement (Cartesian space)
+            pygame.K_w: 'forward',      # +X
+            pygame.K_s: 'backward',     # -X
+            pygame.K_a: 'left',         # +Y
+            pygame.K_d: 'right',        # -Y
+            pygame.K_q: 'up',           # +Z
+            pygame.K_e: 'down',         # -Z
+            
+            # Rotation (Cartesian space)
+            pygame.K_i: 'rotate_x_pos',  # +RX
+            pygame.K_k: 'rotate_x_neg',  # -RX
+            pygame.K_j: 'rotate_y_pos',  # +RY
+            pygame.K_l: 'rotate_y_neg',  # -RY
+            pygame.K_u: 'rotate_z_pos',  # +RZ
+            pygame.K_o: 'rotate_z_neg',  # -RZ
+            
+            # Control
+            pygame.K_SPACE: 'emergency_stop',
+            pygame.K_LSHIFT: 'enable',
+            pygame.K_RSHIFT: 'enable',
+            pygame.K_TAB: 'mode_switch',
+            pygame.K_EQUALS: 'speed_up',    # +
+            pygame.K_MINUS: 'speed_down',    # -
+            
+            # Joint control mode (numbers 1-7)
+            pygame.K_1: 'joint_1_neg',
+            pygame.K_2: 'joint_2_neg',
+            pygame.K_3: 'joint_3_neg',
+            pygame.K_4: 'joint_4_neg',
+            pygame.K_5: 'joint_5_neg',
+            pygame.K_6: 'joint_6_neg',
+            pygame.K_7: 'joint_7_neg',
+            
+            # Home position
+            pygame.K_h: 'go_home',
+        }
+    else:
+        DEFAULT_KEY_MAP = {}
     
     def __init__(
         self,
         robot: RobotController,
         update_rate: float = 100.0,
-        key_map: Dict[int, str] = None,
+        key_map: Optional[Dict] = None,
         linear_speed: float = 0.1,
         angular_speed: float = 0.3,
         joint_speed: float = 5.0,
+        force_terminal_mode: bool = False,
     ):
         """
         Initialize keyboard teleoperation.
@@ -79,10 +148,27 @@ class KeyboardTeleop(TeleopBase):
             linear_speed: Linear velocity in m/s
             angular_speed: Angular velocity in rad/s
             joint_speed: Joint velocity in deg/s
+            force_terminal_mode: Force terminal mode even if display available
         """
         super().__init__(robot, update_rate)
         
-        self.key_map = key_map or self.DEFAULT_KEY_MAP
+        # Detect mode
+        self.has_display = _detect_display() and not force_terminal_mode
+        self.terminal_mode = not self.has_display
+        
+        if self.terminal_mode:
+            logger.info("Using TERMINAL mode (SSH-compatible)")
+            self.key_map = self.TERMINAL_KEY_MAP
+            self.toggle_enable = False  # For terminal mode toggle
+            # Reduce update rate for terminal mode to accommodate 50ms key timeout
+            if update_rate > 15:
+                self.update_rate = 15.0
+                self.update_period = 1.0 / 15.0
+                logger.info(f"Terminal mode: reduced update rate to {self.update_rate} Hz for reliable key detection")
+        else:
+            logger.info("Using PYGAME mode (Display available)")
+            self.key_map = key_map or self.DEFAULT_KEY_MAP
+        
         self.linear_speed = linear_speed
         self.angular_speed = angular_speed
         self.joint_speed = joint_speed
@@ -93,18 +179,20 @@ class KeyboardTeleop(TeleopBase):
         self.screen = None
     
     def setup(self) -> bool:
-        """Setup pygame and display window."""
+        """Setup input method (pygame or terminal)."""
         try:
-            pygame.init()
+            if self.terminal_mode:
+                # Terminal mode setup
+                self._print_terminal_instructions()
+                logger.info("Terminal keyboard teleoperation setup complete")
+            else:
+                # Pygame mode setup
+                pygame.init()
+                self.screen = pygame.display.set_mode((640, 480))
+                pygame.display.set_caption("RealMan Robot Keyboard Control")
+                self._display_instructions()
+                logger.info("Pygame keyboard teleoperation setup complete")
             
-            # Create a small window for focus
-            self.screen = pygame.display.set_mode((640, 480))
-            pygame.display.set_caption("RealMan Robot Keyboard Control")
-            
-            # Fill screen with instructions
-            self._display_instructions()
-            
-            logger.info("Keyboard teleoperation setup complete")
             logger.info(f"Mode: {self.mode}")
             logger.info(f"Linear speed: {self.linear_speed} m/s")
             logger.info(f"Angular speed: {self.angular_speed} rad/s")
@@ -114,6 +202,33 @@ class KeyboardTeleop(TeleopBase):
         except Exception as e:
             logger.error(f"Setup failed: {e}")
             return False
+    
+    def _print_terminal_instructions(self):
+        """Print instructions for terminal mode."""
+        print("\n" + "=" * 70)
+        print("KEYBOARD TELEOPERATION (Terminal Mode - SSH Compatible)")
+        print("=" * 70)
+        print("\n📋 Controls:")
+        print("  Enable/Disable:")
+        print("    SPACE - Toggle enable/disable (SAFETY SWITCH)")
+        print("\n  Movement (when enabled):")
+        print("    w/s - Forward/Backward")
+        print("    a/d - Left/Right")
+        print("    q/e - Up/Down")
+        print("\n  Rotation (when enabled):")
+        print("    i/k - Pitch up/down")
+        print("    j/l - Roll left/right")
+        print("    u/o - Yaw left/right")
+        print("\n  Other:")
+        print("    h - Move to home position")
+        print("    + - Increase speed")
+        print("    - - Decrease speed")
+        print("    ESC or x - Exit")
+        print("\n" + "=" * 70)
+        print("⚠️  WARNING: Robot will move when ENABLED!")
+        print("=" * 70)
+        print(f"\nCurrent speed: {self.linear_speed:.3f} m/s")
+        print("Status: ❌ DISABLED - Press SPACE to enable\n")
     
     def _display_instructions(self):
         """Display control instructions on pygame window."""
@@ -155,8 +270,78 @@ class KeyboardTeleop(TeleopBase):
         
         pygame.display.flip()
     
+    def _get_terminal_key(self):
+        """Get a single keypress from terminal (non-blocking)."""
+        if not TERMINAL_MODE_AVAILABLE:
+            return None
+        
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            # Use 50ms timeout - same as working simple script for reliable key detection
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.05)
+            if rlist:
+                ch = sys.stdin.read(1)
+                return ch
+            return None
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    
+    def _terminal_direct_move(self, key: str, direction: str):
+        """Direct movement command for terminal mode (faster, bypasses normal loop)."""
+        # Get current pose and apply small increment
+        current_pose = self.robot.get_current_pose()
+        if not current_pose:
+            print(f"\r⚠️  Cannot read pose    ", end='', flush=True)
+            return
+        
+        target_pose = current_pose.copy()
+        increment = 0.01  # 1cm or 0.01 rad per keypress
+        
+        # Apply movement
+        if direction == 'X+':
+            target_pose[0] += increment
+            print(f"\r⬆️  Forward (+X)      ", end='', flush=True)
+        elif direction == 'X-':
+            target_pose[0] -= increment
+            print(f"\r⬇️  Backward (-X)     ", end='', flush=True)
+        elif direction == 'Y+':
+            target_pose[1] += increment
+            print(f"\r⬅️  Left (+Y)         ", end='', flush=True)
+        elif direction == 'Y-':
+            target_pose[1] -= increment
+            print(f"\r➡️  Right (-Y)        ", end='', flush=True)
+        elif direction == 'Z+':
+            target_pose[2] += increment
+            print(f"\r⬆️  Up (+Z)           ", end='', flush=True)
+        elif direction == 'Z-':
+            target_pose[2] -= increment
+            print(f"\r⬇️  Down (-Z)         ", end='', flush=True)
+        elif direction == 'RX+':
+            target_pose[3] += increment * 0.5
+            print(f"\r🔄 Pitch+           ", end='', flush=True)
+        elif direction == 'RX-':
+            target_pose[3] -= increment * 0.5
+            print(f"\r🔄 Pitch-           ", end='', flush=True)
+        elif direction == 'RY+':
+            target_pose[4] += increment * 0.5
+            print(f"\r🔄 Roll+            ", end='', flush=True)
+        elif direction == 'RY-':
+            target_pose[4] -= increment * 0.5
+            print(f"\r🔄 Roll-            ", end='', flush=True)
+        elif direction == 'RZ+':
+            target_pose[5] += increment * 0.5
+            print(f"\r🔄 Yaw+             ", end='', flush=True)
+        elif direction == 'RZ-':
+            target_pose[5] -= increment * 0.5
+            print(f"\r🔄 Yaw-             ", end='', flush=True)
+        
+        # Send command directly (non-blocking)
+        self.robot.movel(target_pose, velocity=30, block=False)
+    
     def read_input(self) -> dict:
-        """Read keyboard input."""
+        """Read keyboard input (terminal or pygame mode)."""
         input_state = {
             'linear': [0.0, 0.0, 0.0],
             'angular': [0.0, 0.0, 0.0],
@@ -168,6 +353,109 @@ class KeyboardTeleop(TeleopBase):
             'go_home': False,
         }
         
+        if self.terminal_mode:
+            # Terminal mode input
+            return self._read_terminal_input(input_state)
+        else:
+            # Pygame mode input
+            return self._read_pygame_input(input_state)
+    
+    def _read_terminal_input(self, input_state: dict) -> dict:
+        """Read input in terminal mode."""
+        key = self._get_terminal_key()
+        
+        if key is None:
+            input_state['enable'] = self.toggle_enable
+            return input_state
+        
+        # Debug: show what key was pressed (for troubleshooting)
+        # print(f"\nDEBUG: Key pressed = {repr(key)}", flush=True)
+        
+        # Check for exit
+        if key in ['x', '\x1b']:  # x or ESC
+            input_state['emergency_stop'] = True
+            return input_state
+        
+        # Check for toggle enable (space bar)
+        if key == ' ':
+            self.toggle_enable = not self.toggle_enable
+            if self.toggle_enable:
+                print("\r✅ ENABLED - Robot will move!                    ", end='', flush=True)
+            else:
+                print("\r❌ DISABLED - Press SPACE to enable              ", end='', flush=True)
+            input_state['enable'] = self.toggle_enable
+            return input_state
+        
+        # Speed adjustment
+        if key in ['+', '=']:
+            self.linear_speed = min(self.linear_speed + 0.01, 0.5)
+            self.angular_speed = self.linear_speed * 3.0
+            status = "ENABLED" if self.toggle_enable else "DISABLED"
+            print(f"\r[{status}] Speed: {self.linear_speed:.3f} m/s    ", end='', flush=True)
+        elif key in ['-', '_']:
+            self.linear_speed = max(self.linear_speed - 0.01, 0.01)
+            self.angular_speed = self.linear_speed * 3.0
+            status = "ENABLED" if self.toggle_enable else "DISABLED"
+            print(f"\r[{status}] Speed: {self.linear_speed:.3f} m/s    ", end='', flush=True)
+        elif key == 'h':
+            input_state['go_home'] = True
+            print("\r🏠 Moving to home position...        ", end='', flush=True)
+        
+        # Set enable state
+        input_state['enable'] = self.toggle_enable
+        
+        # Movement/rotation (only if enabled)
+        if self.toggle_enable:
+            action = self.key_map.get(key)
+            
+            # Direct incremental movement for faster response
+            if action == 'forward':
+                # Send direct movement command for instant response
+                self._terminal_direct_move(key, 'X+')
+            elif action == 'backward':
+                self._terminal_direct_move(key, 'X-')
+            elif action == 'left':
+                self._terminal_direct_move(key, 'Y+')
+            elif action == 'right':
+                self._terminal_direct_move(key, 'Y-')
+            elif action == 'up':
+                self._terminal_direct_move(key, 'Z+')
+            elif action == 'down':
+                self._terminal_direct_move(key, 'Z-')
+            elif action == 'rotate_x_pos':
+                self._terminal_direct_move(key, 'RX+')
+            elif action == 'rotate_x_neg':
+                self._terminal_direct_move(key, 'RX-')
+            elif action == 'rotate_y_pos':
+                self._terminal_direct_move(key, 'RY+')
+            elif action == 'rotate_y_neg':
+                self._terminal_direct_move(key, 'RY-')
+            elif action == 'rotate_z_pos':
+                self._terminal_direct_move(key, 'RZ+')
+            elif action == 'rotate_z_neg':
+                self._terminal_direct_move(key, 'RZ-')
+            else:
+                # For non-movement keys, use normal processing
+                if action == 'forward':
+                    input_state['linear'][0] = self.linear_speed
+                elif action == 'backward':
+                    input_state['linear'][0] = -self.linear_speed
+                elif action == 'left':
+                    input_state['linear'][1] = self.linear_speed
+                elif action == 'right':
+                    input_state['linear'][1] = -self.linear_speed
+                elif action == 'up':
+                    input_state['linear'][2] = self.linear_speed
+                elif action == 'down':
+                    input_state['linear'][2] = -self.linear_speed
+        else:
+            if key in 'wsadqeijkluo':
+                print("\r⚠️  DISABLED - Press SPACE to enable    ", end='', flush=True)
+        
+        return input_state
+    
+    def _read_pygame_input(self, input_state: dict) -> dict:
+        """Read input in pygame mode."""
         # Process pygame events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -320,7 +608,10 @@ class KeyboardTeleop(TeleopBase):
             return False
     
     def cleanup(self):
-        """Cleanup pygame resources."""
-        if self.screen:
+        """Cleanup resources (pygame or terminal)."""
+        if self.terminal_mode:
+            print("\n\n")  # Clean up terminal output
+            logger.info("Terminal mode cleaned up")
+        elif self.screen:
             pygame.quit()
             logger.info("Pygame cleaned up")

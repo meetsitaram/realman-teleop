@@ -1,0 +1,45 @@
+# Joystick Configuration for Logitech F310
+# Optimized for F310 gamepad
+
+joystick:
+  device: 0
+  deadzone: 0.15    # F310 has some drift, increase deadzone
+
+# Logitech F310 Axis mapping (in DirectInput mode):
+# Axis 0: Left stick horizontal (left/right)
+# Axis 1: Left stick vertical (up/down)
+# Axis 2: Right stick horizontal (left/right)  
+# Axis 3: Right stick vertical (up/down)
+# Axis 4: Usually unused or triggers
+# Axis 5: Usually unused or triggers
+axes:
+  linear_x: 1      # Left stick vertical - Forward/backward
+  linear_y: 0      # Left stick horizontal - Left/right
+  linear_z: 3      # Right stick vertical - Up/down
+  angular_x: 2     # Right stick horizontal - Roll/Yaw
+  angular_y: 4     # Unused (set to safe axis)
+  angular_z: 5     # Unused (set to safe axis)
+
+# Logitech F310 Button mapping:
+# 0=A, 1=B, 2=X, 3=Y
+# 4=LB, 5=RB
+# 6=Back, 7=Start
+# 8=Left stick click, 9=Right stick click
+buttons:
+  enable: 4             # LB - Deadman switch
+  turbo: 5              # RB - Turbo mode
+  emergency_stop: 6     # Back - Emergency stop
+  mode_switch: 7        # Start - Switch mode
+  home: 1               # B - Home position
+
+speeds:
+  normal:
+    linear: 0.05      # Slower for safety
+    angular: 0.2
+    joint: 5.0
+  
+  turbo:
+    linear: 0.15
+    angular: 0.5
+    joint: 15.0
+

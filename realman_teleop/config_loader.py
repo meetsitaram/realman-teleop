@@ -36,7 +36,7 @@ class ConfigLoader:
         # Build config from environment variables
         config = {
             'robot': {
-                'ip': os.getenv('ROBOT_IP', '192.168.1.18'),
+                'ip': os.getenv('ROBOT_IP', '192.168.10.18'),
                 'port': int(os.getenv('ROBOT_PORT', '8080')),
                 'model': os.getenv('ROBOT_MODEL', 'RM65'),
             },
@@ -50,6 +50,11 @@ class ConfigLoader:
                 'level': os.getenv('LOG_LEVEL', 'INFO'),
             }
         }
+        
+        # Add DOF if specified (optional, will auto-detect if not set)
+        dof_env = os.getenv('ROBOT_DOF', '')
+        if dof_env and dof_env.isdigit():
+            config['robot']['dof'] = int(dof_env)
         
         return config
     

@@ -207,6 +207,12 @@ def main():
         help='Robot model (overrides config)'
     )
     parser.add_argument(
+        '--dof',
+        type=int,
+        choices=[6, 7],
+        help='Robot degrees of freedom (6 or 7). Auto-detects if not specified.'
+    )
+    parser.add_argument(
         '--rate',
         type=float,
         default=10.0,
@@ -237,12 +243,17 @@ def main():
     # Override with command line arguments
     robot_ip = args.ip or config['robot']['ip']
     robot_model = args.model or config['robot']['model']
+    robot_dof = args.dof or config['robot'].get('dof', None)
     
     logger.info("=" * 60)
     logger.info("Robot State Monitor (READ-ONLY)")
     logger.info("=" * 60)
     logger.info(f"Robot IP: {robot_ip}")
     logger.info(f"Robot Model: {robot_model}")
+    if robot_dof:
+        logger.info(f"Robot DOF: {robot_dof} (configured)")
+    else:
+        logger.info(f"Robot DOF: Auto-detect")
     logger.info(f"Update Rate: {args.rate} Hz")
     logger.info("=" * 60)
     
@@ -250,7 +261,8 @@ def main():
     robot = RobotController(
         ip=robot_ip,
         port=config['robot']['port'],
-        model=robot_model
+        model=robot_model,
+        dof=robot_dof
     )
     
     # Connect to robot

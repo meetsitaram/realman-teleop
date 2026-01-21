@@ -61,9 +61,10 @@ class RobotController:
     
     def __init__(
         self,
-        ip: str = "192.168.1.18",
+        ip: str = "192.168.10.18",
         port: int = 8080,
         model: str = "RM65",
+        dof: Optional[int] = None,
         thread_mode: rm_thread_mode_e = rm_thread_mode_e.RM_TRIPLE_MODE_E
     ):
         """
@@ -73,6 +74,7 @@ class RobotController:
             ip: Robot IP address
             port: Robot port (default 8080)
             model: Robot model name (RM65, RM75, RML63, ECO65, GEN72, R1D2)
+            dof: Degrees of freedom (6 or 7). If None, uses model default and auto-detects on connect.
             thread_mode: Threading mode for API
         """
         self.ip = ip
@@ -84,7 +86,14 @@ class RobotController:
                            f"Supported models: {list(self.ROBOT_MODELS.keys())}")
         
         self.model_config = self.ROBOT_MODELS[self.model_name]
-        self.dof = self.model_config["dof"]
+        
+        # Use provided DOF or fall back to model default
+        if dof is not None:
+            self.dof = dof
+            self.model_config["dof"] = dof
+            logger.info(f"Using configured DOF: {dof}")
+        else:
+            self.dof = self.model_config["dof"]
         
         # Initialize robot API
         self.robot = RoboticArm(thread_mode)
@@ -109,6 +118,9 @@ class RobotController:
             
             self.connected = True
             logger.info(f"Connected to robot at {self.ip}:{self.port} (ID: {self.handle.id})")
+            
+            # Auto-detect actual DOF from robot
+            self._detect_dof()
             
             # Get and log robot info
             self._log_robot_info()
@@ -139,6 +151,24 @@ class RobotController:
         except Exception as e:
             logger.error(f"Disconnection failed: {e}")
             return False
+    
+    def _detect_dof(self):
+        """Detect actual DOF from robot by reading joint state."""
+        try:
+            result, state = self.robot.rm_get_current_arm_state()
+            if result == 0:
+                joints = state.get('joint', [])
+                if joints and len(joints) > 0:
+                    actual_dof = len(joints)
+                    if actual_dof != self.dof:
+                        logger.warning(f"DOF mismatch! Config says {self.dof}, robot has {actual_dof}")
+                        logger.info(f"Auto-updating DOF to {actual_dof}")
+                        self.dof = actual_dof
+                        self.model_config["dof"] = actual_dof
+                    else:
+                        logger.info(f"Detected DOF: {self.dof}")
+        except Exception as e:
+            logger.warning(f"Could not auto-detect DOF: {e}")
     
     def _log_robot_info(self):
         """Log robot software information."""
@@ -274,15 +304,20 @@ class RobotController:
         
         result, state = self.robot.rm_get_current_arm_state()
         if result == 0:
-            pose_data = state.get('pose', {})
-            return [
-                pose_data.get('position', {}).get('x', 0),
-                pose_data.get('position', {}).get('y', 0),
-                pose_data.get('position', {}).get('z', 0),
-                pose_data.get('euler', {}).get('rx', 0),
-                pose_data.get('euler', {}).get('ry', 0),
-                pose_data.get('euler', {}).get('rz', 0),
-            ]
+            pose_data = state.get('pose', [])
+            
+            # Handle both list format and nested dict format
+            if isinstance(pose_data, list) and len(pose_data) == 6:
+                return pose_data
+            elif isinstance(pose_data, dict):
+                return [
+                    pose_data.get('position', {}).get('x', 0),
+                    pose_data.get('position', {}).get('y', 0),
+                    pose_data.get('position', {}).get('z', 0),
+                    pose_data.get('euler', {}).get('rx', 0),
+                    pose_data.get('euler', {}).get('ry', 0),
+                    pose_data.get('euler', {}).get('rz', 0),
+                ]
         return None
     
     def get_joint_velocities(self) -> Optional[List[float]]:
