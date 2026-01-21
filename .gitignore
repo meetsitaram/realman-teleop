@@ -61,3 +61,4 @@ docs/_templates/
 # Local experiments
 experiments/
 scratch/
+robot.yaml

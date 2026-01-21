@@ -1,0 +1,17 @@
+# RealMan Robot Configuration Example
+# Copy this file to robot.yaml and edit with your robot's settings
+# Or run: python setup_robot.py
+
+robot:
+  ip: 192.168.10.18    # Your robot's IP address
+  port: 8080            # Robot port (usually 8080)
+  model: R1D2           # Robot model: RM65, RM75, RML63, ECO65, GEN72, R1D2
+  # dof: 6              # Optional: Degrees of freedom (6 or 7). Auto-detects if not specified.
+
+control:
+  default_speed: 0.1          # Default movement speed in m/s
+  default_update_rate: 100    # Control loop rate in Hz
+
+logging:
+  level: INFO                 # DEBUG, INFO, WARNING, or ERROR
+

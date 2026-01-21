@@ -20,25 +20,42 @@ class ConfigLoader:
     @staticmethod
     def load_env_config() -> Dict:
         """
-        Load configuration from .env file.
+        Load configuration from robot.yaml or .env file.
+        Priority: robot.yaml > .env > defaults
         
         Returns:
-            Configuration dictionary from environment variables
+            Configuration dictionary
         """
-        # Try to load .env file from project root
         project_root = Path(__file__).parent.parent
-        env_file = project_root / ".env"
         
+        # Try robot.yaml first (preferred)
+        robot_yaml = project_root / "robot.yaml"
+        if robot_yaml.exists():
+            try:
+                config = ConfigLoader.load_yaml(str(robot_yaml))
+                if config:
+                    logger.info(f"Loaded configuration from {robot_yaml}")
+                    # Ensure all required keys exist with defaults
+                    defaults = ConfigLoader.get_default_robot_config()
+                    for key in defaults:
+                        if key not in config:
+                            config[key] = defaults[key]
+                    return config
+            except Exception as e:
+                logger.warning(f"Failed to load robot.yaml: {e}, falling back to .env")
+        
+        # Fall back to .env file for backwards compatibility
+        env_file = project_root / ".env"
         if env_file.exists():
             load_dotenv(env_file)
             logger.info(f"Loaded environment from {env_file}")
         
-        # Build config from environment variables
+        # Build config from environment variables or defaults
         config = {
             'robot': {
                 'ip': os.getenv('ROBOT_IP', '192.168.10.18'),
                 'port': int(os.getenv('ROBOT_PORT', '8080')),
-                'model': os.getenv('ROBOT_MODEL', 'RM65'),
+                'model': os.getenv('ROBOT_MODEL', 'R1D2'),
             },
             'control': {
                 'update_rate': float(os.getenv('DEFAULT_UPDATE_RATE', '100')),

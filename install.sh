@@ -57,13 +57,15 @@ echo "Setting up configuration files..."
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate ${ENV_NAME}
 
-# Copy .env template if it doesn't exist
-if [ ! -f ".env" ]; then
-    cp env.template .env
-    echo -e "${GREEN}✓ Created .env configuration file${NC}"
-    echo -e "${YELLOW}  → You need to edit .env with your robot's IP address${NC}"
+# Copy robot.yaml.example if robot.yaml doesn't exist
+if [ ! -f "robot.yaml" ]; then
+    if [ -f "robot.yaml.example" ]; then
+        cp robot.yaml.example robot.yaml
+        echo -e "${GREEN}✓ Created robot.yaml configuration file${NC}"
+        echo -e "${YELLOW}  → You need to edit robot.yaml with your robot's IP address${NC}"
+    fi
 else
-    echo -e "${YELLOW}⚠ .env already exists, skipping${NC}"
+    echo -e "${YELLOW}⚠ robot.yaml already exists, skipping${NC}"
 fi
 
 # Copy example configuration files if they don't exist
