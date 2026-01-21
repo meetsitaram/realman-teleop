@@ -1,0 +1,33 @@
+# Keyboard Configuration
+# Copy this file to keyboard_config.yaml and adjust to your preferences
+
+keyboard:
+  # Movement keys (WASD + QE for vertical)
+  forward: 'w'       # +X axis
+  backward: 's'      # -X axis
+  left: 'a'          # +Y axis
+  right: 'd'         # -Y axis
+  up: 'q'            # +Z axis
+  down: 'e'          # -Z axis
+  
+  # Rotation keys (IJKL + UO)
+  rotate_x_pos: 'i'  # Rotate around X axis (pitch up)
+  rotate_x_neg: 'k'  # Rotate around X axis (pitch down)
+  rotate_y_pos: 'j'  # Rotate around Y axis (roll left)
+  rotate_y_neg: 'l'  # Rotate around Y axis (roll right)
+  rotate_z_pos: 'u'  # Rotate around Z axis (yaw left)
+  rotate_z_neg: 'o'  # Rotate around Z axis (yaw right)
+  
+  # Control keys
+  emergency_stop: 'space'   # Emergency stop (space bar)
+  enable: 'shift'           # Enable motion (must hold)
+  mode_switch: 'tab'        # Switch between cartesian/joint mode
+  increase_speed: '='       # Increase speed (+ key)
+  decrease_speed: '-'       # Decrease speed (- key)
+  go_home: 'h'              # Move to home position
+
+speeds:
+  # Movement speeds
+  linear: 0.1      # Linear velocity (m/s)
+  angular: 0.3     # Angular velocity (rad/s)
+  joint: 10.0      # Joint velocity (deg/s)

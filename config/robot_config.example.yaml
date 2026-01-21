@@ -1,0 +1,41 @@
+# RealMan Robot Configuration
+# Copy this file to robot_config.yaml and adjust for your setup
+
+robot:
+  # Robot connection settings
+  ip: "192.168.1.18"  # Robot IP address
+  port: 8080          # Robot port (default 8080)
+  model: "RM65"       # Robot model: RM65, RM75, RML63, ECO65, GEN72, R1D2
+
+control:
+  # Control mode: cartesian, joint, or velocity
+  mode: "cartesian"
+  
+  # Control loop update rate in Hz (10-200)
+  update_rate: 100
+
+limits:
+  # Maximum velocities
+  max_linear_velocity: 0.5    # m/s
+  max_angular_velocity: 1.0   # rad/s
+  max_joint_velocity: 30.0    # deg/s
+  
+  # Workspace limits (meters)
+  workspace:
+    x_min: -0.7
+    x_max: 0.7
+    y_min: -0.7
+    y_max: 0.7
+    z_min: 0.0
+    z_max: 1.0
+
+safety:
+  # Safety features
+  enable_deadman: true              # Require enable button to be held
+  enable_collision_detection: true  # Enable collision detection
+  collision_level: 3                # Collision sensitivity (0-8, higher = more sensitive)
+  emergency_stop_enabled: true      # Enable emergency stop button
+  
+  # Enable velocity and workspace limiting
+  enable_velocity_limits: true
+  enable_workspace_limits: true

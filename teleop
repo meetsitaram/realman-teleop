@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Simple wrapper script for teleoperation commands
+# Usage: ./teleop [keyboard|joystick|test|list]
+
+set -e
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Check if conda environment is activated
+if [[ "$CONDA_DEFAULT_ENV" != "realman-teleop" ]]; then
+    echo -e "${YELLOW}⚠ Conda environment 'realman-teleop' is not activated${NC}"
+    echo "Activating now..."
+    source "$(conda info --base)/etc/profile.d/conda.sh"
+    conda activate realman-teleop
+fi
+
+# Check if .env exists
+if [ ! -f ".env" ]; then
+    echo -e "${RED}✗ Configuration file (.env) not found${NC}"
+    echo ""
+    echo "Please run setup first:"
+    echo "  python setup_robot.py"
+    echo ""
+    exit 1
+fi
+
+# Function to show usage
+show_usage() {
+    echo "RealMan Robot Teleoperation - Quick Commands"
+    echo ""
+    echo "Usage: ./teleop <command> [options]"
+    echo ""
+    echo "Commands:"
+    echo "  monitor     Monitor robot state (READ-ONLY, safe for first connection)"
+    echo "  keyboard    Start keyboard teleoperation"
+    echo "  joystick    Start joystick teleoperation"
+    echo "  test        Test connection to robot"
+    echo "  list        List available joystick devices"
+    echo "  setup       Run setup wizard"
+    echo "  verify      Verify installation"
+    echo ""
+    echo "Options:"
+    echo "  --speed <value>    Override default speed (e.g., --speed 0.2)"
+    echo "  --log <level>      Set log level (DEBUG, INFO, WARNING, ERROR)"
+    echo ""
+    echo "Examples:"
+    echo "  ./teleop monitor               # Watch robot state (recommended first!)"
+    echo "  ./teleop keyboard              # Start keyboard control"
+    echo "  ./teleop keyboard --speed 0.2  # Keyboard control with custom speed"
+    echo "  ./teleop joystick              # Start joystick control"
+    echo "  ./teleop test                  # Test robot connection"
+    echo ""
+    echo "Note: Robot IP and model are read from .env file"
+    echo "      Run './teleop setup' to configure"
+}
+
+# Parse command
+COMMAND=${1:-help}
+shift || true
+
+case "$COMMAND" in
+    monitor|m|watch)
+        echo -e "${GREEN}Starting robot state monitor (READ-ONLY)...${NC}"
+        python examples/monitor_robot.py "$@"
+        ;;
+    
+    keyboard|k)
+        echo -e "${GREEN}Starting keyboard teleoperation...${NC}"
+        python examples/keyboard_teleop.py "$@"
+        ;;
+    
+    joystick|j|gamepad)
+        echo -e "${GREEN}Starting joystick teleoperation...${NC}"
+        python examples/joystick_teleop.py "$@"
+        ;;
+    
+    test|t)
+        echo -e "${GREEN}Testing robot connection...${NC}"
+        python examples/basic_usage.py "$@"
+        ;;
+    
+    list|l)
+        echo -e "${GREEN}Listing joystick devices...${NC}"
+        python examples/list_joysticks.py "$@"
+        ;;
+    
+    setup|config)
+        python setup_robot.py "$@"
+        ;;
+    
+    verify|check)
+        python verify_setup.py "$@"
+        ;;
+    
+    help|--help|-h|"")
+        show_usage
+        ;;
+    
+    *)
+        echo -e "${RED}Unknown command: $COMMAND${NC}"
+        echo ""
+        show_usage
+        exit 1
+        ;;
+esac
+

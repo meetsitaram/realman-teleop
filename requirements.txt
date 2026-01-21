@@ -1,0 +1,19 @@
+# Core dependencies
+Robotic_Arm>=0.2.9  # RealMan official Python API
+numpy>=1.21.0
+PyYAML>=6.0
+
+# Input device support
+pygame>=2.1.0  # Joystick/gamepad support
+keyboard>=0.13.5  # Keyboard input (requires root/admin on Linux)
+inputs>=0.5  # Alternative joystick library (no root required)
+
+# Configuration and utilities
+python-dotenv>=0.19.0
+colorama>=0.4.4  # Colored terminal output
+
+# Logging and monitoring
+rich>=10.0.0  # Rich terminal output
+
+# Optional: Advanced features
+scipy>=1.7.0  # For trajectory smoothing

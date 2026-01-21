@@ -1,0 +1,43 @@
+# Joystick/Gamepad Configuration
+# Copy this file to joystick_config.yaml and adjust for your controller
+
+joystick:
+  # Device settings
+  device: 0        # Joystick index (use list_joysticks.py to find)
+  deadzone: 0.1    # Joystick deadzone (0-1)
+
+# Axis mapping (adjust based on your controller)
+# Standard Xbox/PS4 controller layout:
+# - Left stick: axes 0 (horizontal), 1 (vertical)
+# - Right stick: axes 2/3 or 3/4
+# - Triggers: axes 2 and 5 (or buttons)
+axes:
+  linear_x: 1      # Forward/backward (left stick vertical)
+  linear_y: 0      # Left/right (left stick horizontal)
+  linear_z: 4      # Up/down (right stick vertical or triggers)
+  angular_x: 3     # Roll (right stick horizontal)
+  angular_y: 5     # Pitch (right trigger)
+  angular_z: 2     # Yaw (left trigger or D-pad)
+
+# Button mapping (adjust based on your controller)
+# Xbox controller: A=0, B=1, X=2, Y=3, LB=4, RB=5, Back=6, Start=7
+# PS4 controller: X=0, O=1, Square=2, Triangle=3, L1=4, R1=5, Share=8, Options=9
+buttons:
+  enable: 4             # LB/L1 - Deadman switch (must hold to move)
+  turbo: 5              # RB/R1 - Turbo mode (faster movement)
+  emergency_stop: 6     # Back/Select - Emergency stop
+  mode_switch: 7        # Start - Switch between cartesian/joint mode
+  home: 1               # B/O - Move to home position
+
+speeds:
+  # Normal speed (when enable button held)
+  normal:
+    linear: 0.1      # m/s
+    angular: 0.3     # rad/s
+    joint: 10.0      # deg/s
+  
+  # Turbo speed (when both enable and turbo held)
+  turbo:
+    linear: 0.3      # m/s
+    angular: 0.8     # rad/s
+    joint: 20.0      # deg/s
