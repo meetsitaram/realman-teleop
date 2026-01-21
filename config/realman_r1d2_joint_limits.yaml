@@ -1,0 +1,8 @@
+joint_limits:
+  joint_1: [-178, 178]
+  joint_2: [-130, 130]
+  joint_3: [-135, 135]
+  joint_4: [-178, 178]
+  joint_5: [-128, 128]
+  joint_6: [-360, 360]
+  gripper: [1, 1000]  # Gripper position: 1=closed, 1000=fully open

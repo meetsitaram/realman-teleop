@@ -28,6 +28,9 @@ buttons:
   emergency_stop: 6     # Back/Select - Emergency stop
   mode_switch: 7        # Start - Switch between cartesian/joint mode
   home: 1               # B/O - Move to home position
+  gripper_open: 3       # Y/Triangle - Open gripper
+  gripper_close: 0      # A/X - Close gripper
+  gripper_half: 2       # X/Square - Half-open gripper
 
 speeds:
   # Normal speed (when enable button held)

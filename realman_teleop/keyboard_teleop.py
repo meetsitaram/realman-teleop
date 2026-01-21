@@ -80,6 +80,9 @@ class KeyboardTeleop(TeleopBase):
         'u': 'rotate_z_pos', 'o': 'rotate_z_neg',
         ' ': 'toggle_enable',
         'h': 'go_home',
+        'g': 'gripper_open',
+        'f': 'gripper_close',
+        'v': 'gripper_half',
         '+': 'speed_up', '=': 'speed_up',
         '-': 'speed_down', '_': 'speed_down',
         'x': 'exit',
@@ -124,6 +127,11 @@ class KeyboardTeleop(TeleopBase):
             
             # Home position
             pygame.K_h: 'go_home',
+            
+            # Gripper control
+            pygame.K_g: 'gripper_open',
+            pygame.K_f: 'gripper_close',
+            pygame.K_v: 'gripper_half',
         }
     else:
         DEFAULT_KEY_MAP = {}
@@ -219,6 +227,10 @@ class KeyboardTeleop(TeleopBase):
         print("    i/k - Pitch up/down")
         print("    j/l - Roll left/right")
         print("    u/o - Yaw left/right")
+        print("\n  Gripper:")
+        print("    g - Open gripper")
+        print("    f - Close gripper")
+        print("    v - Half open gripper")
         print("\n  Other:")
         print("    h - Move to home position")
         print("    + - Increase speed")
@@ -400,6 +412,15 @@ class KeyboardTeleop(TeleopBase):
         elif key == 'h':
             input_state['go_home'] = True
             print("\r🏠 Moving to home position...        ", end='', flush=True)
+        elif key == 'g':
+            print("\r✋ Opening gripper...                 ", end='', flush=True)
+            self.robot.gripper_open(speed=500, block=False)
+        elif key == 'f':
+            print("\r✊ Closing gripper...                 ", end='', flush=True)
+            self.robot.gripper_close(speed=500, force=300, block=False)
+        elif key == 'v':
+            print("\r🤏 Half-opening gripper...            ", end='', flush=True)
+            self.robot.gripper_set_position(500, block=False)
         
         # Set enable state
         input_state['enable'] = self.toggle_enable
@@ -477,6 +498,21 @@ class KeyboardTeleop(TeleopBase):
                         input_state['mode_switch'] = True
                 elif action == 'go_home':
                     input_state['go_home'] = True
+                elif action == 'gripper_open':
+                    if not hasattr(self, '_gripper_open_pressed'):
+                        self._gripper_open_pressed = True
+                        self.robot.gripper_open(speed=500, block=False)
+                        self.logger.info("Opening gripper")
+                elif action == 'gripper_close':
+                    if not hasattr(self, '_gripper_close_pressed'):
+                        self._gripper_close_pressed = True
+                        self.robot.gripper_close(speed=500, force=300, block=False)
+                        self.logger.info("Closing gripper")
+                elif action == 'gripper_half':
+                    if not hasattr(self, '_gripper_half_pressed'):
+                        self._gripper_half_pressed = True
+                        self.robot.gripper_set_position(500, block=False)
+                        self.logger.info("Half-opening gripper")
                 elif action == 'speed_up':
                     input_state['speed_change'] = 1
                 elif action == 'speed_down':
@@ -519,6 +555,14 @@ class KeyboardTeleop(TeleopBase):
         # Reset mode switch flag when key released
         if not keys[pygame.K_TAB]:
             self._mode_switch_pressed = False
+        
+        # Reset gripper button flags when keys released
+        if not keys[pygame.K_g]:
+            self._gripper_open_pressed = False
+        if not keys[pygame.K_f]:
+            self._gripper_close_pressed = False
+        if not keys[pygame.K_v]:
+            self._gripper_half_pressed = False
         
         return input_state
     

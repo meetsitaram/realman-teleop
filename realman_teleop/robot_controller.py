@@ -383,6 +383,81 @@ class RobotController:
         
         return self.robot.rm_clear_system_err()
     
+    # ========== Gripper Control Methods ==========
+    
+    def gripper_open(self, speed: int = 500, block: bool = True, timeout: int = 3000) -> int:
+        """
+        Open the gripper fully.
+        
+        Args:
+            speed: Opening speed (1-1000, higher = faster)
+            block: Wait for completion
+            timeout: Timeout in milliseconds
+            
+        Returns:
+            Status code (0 = success)
+        """
+        if not self.connected:
+            logger.error("Robot not connected")
+            return -1
+        
+        logger.info(f"Opening gripper (speed={speed})")
+        return self.robot.rm_set_gripper_release(speed, block, timeout)
+    
+    def gripper_close(self, speed: int = 500, force: int = 500, block: bool = True, timeout: int = 3000) -> int:
+        """
+        Close the gripper with force control.
+        
+        Args:
+            speed: Closing speed (1-1000)
+            force: Gripping force threshold (1-1000)
+            block: Wait for completion
+            timeout: Timeout in milliseconds
+            
+        Returns:
+            Status code (0 = success)
+        """
+        if not self.connected:
+            logger.error("Robot not connected")
+            return -1
+        
+        logger.info(f"Closing gripper (speed={speed}, force={force})")
+        return self.robot.rm_set_gripper_pick(speed, force, block, timeout)
+    
+    def gripper_set_position(self, position: int, block: bool = True, timeout: int = 3000) -> int:
+        """
+        Set gripper to a specific position.
+        
+        Args:
+            position: Gripper opening (1-1000, 1=closed, 1000=open)
+            block: Wait for completion
+            timeout: Timeout in milliseconds
+            
+        Returns:
+            Status code (0 = success)
+        """
+        if not self.connected:
+            logger.error("Robot not connected")
+            return -1
+        
+        logger.info(f"Setting gripper position to {position}")
+        return self.robot.rm_set_gripper_position(position, block, timeout)
+    
+    def gripper_get_state(self) -> Optional[Dict]:
+        """
+        Get current gripper state.
+        
+        Returns:
+            Dictionary with gripper state or None if error
+        """
+        if not self.connected:
+            return None
+        
+        result, state = self.robot.rm_get_gripper_state()
+        if result == 0:
+            return state
+        return None
+    
     # ========== Utility Methods ==========
     
     def move_to_home(self, velocity: int = 20) -> int:

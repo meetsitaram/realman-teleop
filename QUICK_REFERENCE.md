@@ -37,6 +37,9 @@ python examples/keyboard_teleop.py --model R1D2 --ip 192.168.1.18
 | I / K | Pitch (tilt forward/back) |
 | J / L | Roll (tilt left/right) |
 | U / O | Yaw (rotate) |
+| **G** | Open gripper ✋ |
+| **F** | Close gripper ✊ |
+| **V** | Half-open gripper 🤏 |
 | **SPACE** | **Emergency Stop** |
 | TAB | Switch mode |
 | H | Go home |
@@ -58,6 +61,9 @@ python examples/joystick_teleop.py --model R1D2 --ip 192.168.1.18
 | Left Stick | Move horizontal/forward-back |
 | Right Stick | Rotate & vertical |
 | RB / R1 | Turbo mode |
+| **Y / Triangle** | Open gripper ✋ |
+| **A / X** | Close gripper ✊ |
+| **X / Square** | Half-open gripper 🤏 |
 | **Back / Select** | **Emergency Stop** |
 | Start | Switch mode |
 | B / Circle | Go home |

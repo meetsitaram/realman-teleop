@@ -31,6 +31,9 @@ buttons:
   emergency_stop: 6     # Back - Emergency stop
   mode_switch: 7        # Start - Switch mode
   home: 1               # B - Home position
+  gripper_open: 3       # Y - Open gripper
+  gripper_close: 0      # A - Close gripper
+  gripper_half: 2       # X - Half-open gripper
 
 speeds:
   normal:

@@ -119,6 +119,9 @@ class JoystickTeleop(TeleopBase):
             'emergency_stop': False,
             'mode_switch': False,
             'home': False,
+            'gripper_open': False,
+            'gripper_close': False,
+            'gripper_half': False,
         }
         
         if not self.joystick:
@@ -178,6 +181,31 @@ class JoystickTeleop(TeleopBase):
         if input_state['home']:
             commands['home'] = True
             return commands
+        
+        # Handle gripper controls
+        if input_state['gripper_open']:
+            if not hasattr(self, '_gripper_open_pressed'):
+                self._gripper_open_pressed = True
+                self.robot.gripper_open(speed=500, block=False)
+                logger.info("Opening gripper")
+        else:
+            self._gripper_open_pressed = False
+        
+        if input_state['gripper_close']:
+            if not hasattr(self, '_gripper_close_pressed'):
+                self._gripper_close_pressed = True
+                self.robot.gripper_close(speed=500, force=300, block=False)
+                logger.info("Closing gripper")
+        else:
+            self._gripper_close_pressed = False
+        
+        if input_state['gripper_half']:
+            if not hasattr(self, '_gripper_half_pressed'):
+                self._gripper_half_pressed = True
+                self.robot.gripper_set_position(500, block=False)
+                logger.info("Half-opening gripper")
+        else:
+            self._gripper_half_pressed = False
         
         # Build velocity command
         commands['velocity'] = [
